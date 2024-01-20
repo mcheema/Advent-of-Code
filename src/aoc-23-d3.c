@@ -45,7 +45,10 @@ int main(void)
     printf("there are %i rows and %i cols\n", nrows, ncols);
     char *const schematic = malloc(sizeof(char) * nrows * ncols);
     schematic_fill(schematic, nrows, ncols, fname);
-    schematic_print_row(schematic, 0, ncols);
+    for (int i = 0; i < nrows; i++)
+    {
+        schematic_print_row(schematic, i, ncols);        
+    }
 
     /* compute the sum of the values of the valid parts */
     int const cumsum = schematic_scan_and_sum_valid_part_numbers(schematic, nrows, ncols);
@@ -66,18 +69,18 @@ static int schematic_width(char const *const fname)
 static int schematic_length(char const *const fname)
 {
     FILE *f = fopen(fname, "r");    
-    int col_count = 0;
+    int row_count = 0;
     char c;
     while ((c = fgetc(f)) != EOF)
     {
         if (c == '\n')
         {
-            col_count++;            
+            row_count++;            
         }
     }
     
     fclose(f);
-    return col_count;
+    return row_count;
 }
 
 static int schematic_fill(char *const sch, int const nrows, int const ncols, char const *const fname)
@@ -161,7 +164,8 @@ static int schematic_scan_and_sum_valid_part_numbers(char const *const sch, int 
 
 static void schematic_print_row(char const *const sch, int const row, int const ncols)
 {
-    char const *const row_ptr = sch + row * ncols + ncols;
+    char const *const row_ptr = sch + row * ncols;
+    printf("%3i ", row);
     for (int i = 0; i < ncols; i++)
     {
         printf("%c", row_ptr[i]);
@@ -212,6 +216,6 @@ static int schematic_part_number_value(char const *const sch, int const beg, int
     partstr[len] = '\0';
     /* To check the sum of these in the output use the following AWK command*/
     /* awk 'BEGIN { FS=OFS=" "; cumsum = 0; } //{ if (NF == 5) cumsum += $5} END {print cumsum}'*/
-    printf("%i %i %i %s %i\n", row, beg, end, partstr, atoi(partstr));
+    printf("%3i %i %i %s %i\n", row, beg, end, partstr, atoi(partstr));
     return atoi(partstr);
 }
