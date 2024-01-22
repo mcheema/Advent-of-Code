@@ -18,7 +18,7 @@
 #define NO_OF_RED 12 
 #define NO_OF_GREEN 13  
 #define NO_OF_BLUE 14
-#define RESULT_FILENAME "../data/aoc-d2.dat"
+#define RESULT_FILENAME "../../data/aoc-d2.dat"
 #define MAX_SETS 7 /* use: awk -F\;  '{ print NF }' ../data/aoc-d2.dat| sort | tail -n 1 */
 #define MAX_LINE_LENGTH 200 /* awk -F\\n  '{ print length }' ../data/aoc-d2.dat | uniq | sort */
 

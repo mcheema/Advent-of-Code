@@ -18,7 +18,7 @@
 #ifdef TEST
 #define FILENAME "./test.txt" /* sed 3q ../data/aoc-2023-d3.txt > ./test.txt */
 #else
-#define FILENAME "../data/aoc-23-d3.txt"
+#define FILENAME "../../data/aoc-23-d3.txt"
 #endif
 
 #define MAX_COLS 256  /* based on: head -n 1 ../data/aoc-2023-d3.txt | wc | awk '{ print $3 - 1}' */

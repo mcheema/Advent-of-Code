@@ -17,9 +17,9 @@
 //#define VALUE(digit) ((digit) - (int) '0') /* Convert the digit ascii code to the digit's value  */
 
 #ifdef TEST
-char const fname[] = "../data/tmp.dat";
+char const fname[] = "../../data/tmp.dat";
 #else
-char const fname[] = "../data/aoc-23-d1.txt";
+char const fname[] = "../../data/aoc-23-d1.txt";
 #endif
 
 char *numbers[] = {"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
