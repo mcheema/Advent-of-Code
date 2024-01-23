@@ -3,9 +3,9 @@
 
 /*
   Build Instructions:
-  PATH=../build/:${PATH}
-  clang -std=c99 -Wall -Wextra aoc-23-d3.c  -O3 -g -o ../build/aoc-23-d3
-  clang -std=c99 -Wall -Wextra aoc-23-d3.c  -DTEST -g -o ../build/aoc-23-d3
+  PATH=../../build/:${PATH}
+  clang -std=c99 -Wall -Wextra aoc-23-d3.c  -O3 -g -o ../../build/aoc-23-d3
+  clang -std=c99 -Wall -Wextra aoc-23-d3.c  -DTEST -g -o ../../build/aoc-23-d3
 
   Program written for the Advent of Code day 3 2023
  */
@@ -15,8 +15,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #ifdef TEST
-#define FILENAME "./test.txt" /* sed 3q ../data/aoc-2023-d3.txt > ./test.txt */
+#define FILENAME "../../data/aoc-23-d3-ex.txt" /* Example from the problem set */
 #else
 #define FILENAME "../../data/aoc-23-d3.txt"
 #endif
@@ -42,7 +43,7 @@ int main(void)
     char const fname[] = FILENAME;
     int const ncols = schematic_width(fname);
     int const nrows = schematic_length(fname);
-    printf("there are %i rows and %i cols\n", nrows, ncols);
+//    printf("there are %i rows and %i cols\n", nrows, ncols);
     char *const schematic = malloc(sizeof(char) * nrows * ncols);
     schematic_fill(schematic, nrows, ncols, fname);
     for (int i = 0; i < nrows; i++)
@@ -113,8 +114,8 @@ static int schematic_fill(char *const sch, int const nrows, int const ncols, cha
 static int schematic_scan_and_sum_valid_part_numbers(char const *const sch, int const nrows, int const ncols)
 {
     bool digit_found = false; /* are we currently scanning a part nummber? */
-    int beg_part_number_col;
-    int end_part_number_col;
+    int beg_part_number_col = 0;
+    int end_part_number_col = 0;
     int cumsum = 0;
     for (int i = 0; i < nrows; i++)
     {
@@ -216,6 +217,6 @@ static int schematic_part_number_value(char const *const sch, int const beg, int
     partstr[len] = '\0';
     /* To check the sum of these in the output use the following AWK command*/
     /* awk 'BEGIN { FS=OFS=" "; cumsum = 0; } //{ if (NF == 5) cumsum += $5} END {print cumsum}'*/
-    printf("%3i %i %i %s %i\n", row, beg, end, partstr, atoi(partstr));
+//    printf("%3i %i %i %s %i\n", row, beg, end, partstr, atoi(partstr));
     return atoi(partstr);
 }

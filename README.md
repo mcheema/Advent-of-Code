@@ -7,6 +7,8 @@ Correct, but needs refactoring.
 ### DAY 2
 Correct, but needs refactoring.
 ### DAY 3
-Second part still gives wrong answer.
+First part still gives wrong answer.
+I get 529,539 and so far don't even know where the program fails.
+
 
 ## 2024
