@@ -8,6 +8,17 @@
   clang -std=c99 -Wall -Wextra aoc-23-d3.c  -DTEST -g -o ../../build/aoc-23-d3
 
   Program written for the Advent of Code day 3 2023
+
+  First example comes from the problem itself
+  "../../data/aoc-23-d3-ex1.txt"
+  Next two examples come from https://www.reddit.com/r/adventofcode/comments/189q9wv/2023_day_3_another_sample_grid_to_use/
+  "../../data/aoc-23-d3-ex2.txt" part 1: 413 part 2: 6756
+  "../../data/aoc-23-d3-ex3.txt" part 1: 965 part 2: 6756
+
+  example2: echo $((12 + 34 + 78 + 23 + 90 + 2 + 56 + 1))
+  example2: echo $((12*4 + 34 + 78*2 + 23 + 90 + 2*2 + 56 + 1*2))
+
+
  */
 
 #include <ctype.h>
@@ -27,6 +38,8 @@
 #define MAX_DIGITS 32 /* Max digits in the schematic part number */
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX_FNAME_LEN 512
+
 
 static int schematic_length(char const *const fname);
 static int schematic_width(char const *const fname);
@@ -37,20 +50,29 @@ static bool is_symbol_adjacent(char const *const sch, int const beg_col, int con
                                int const ncols);
 static int schematic_part_number_value(char const *const sch, int const beg, int const end, int const row, int const ncols);
 static int schematic_scan_and_sum_valid_part_numbers(char const *const sch, int const nrows, int const ncols);
+static void schematic_check_chars(char const *const sch, int const nrows, int const ncols);
+static bool is_new_part_number(int part_number);
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    char const fname[] = FILENAME;
+    char fname[MAX_FNAME_LEN];
+    if (argc == 2)
+    {
+        strcpy(fname, argv[1]);
+    }
+    else
+    {
+        strcpy(fname, FILENAME);
+    }
     int const ncols = schematic_width(fname);
     int const nrows = schematic_length(fname);
-//    printf("there are %i rows and %i cols\n", nrows, ncols);
     char *const schematic = malloc(sizeof(char) * nrows * ncols);
     schematic_fill(schematic, nrows, ncols, fname);
     for (int i = 0; i < nrows; i++)
     {
-        schematic_print_row(schematic, i, ncols);        
+        schematic_print_row(schematic, i, ncols);
     }
-
+    schematic_check_chars(schematic, nrows, ncols);
     /* compute the sum of the values of the valid parts */
     int const cumsum = schematic_scan_and_sum_valid_part_numbers(schematic, nrows, ncols);
     printf("The value of the sum of the valid part numbers is: %i\n", cumsum);
@@ -124,14 +146,19 @@ static int schematic_scan_and_sum_valid_part_numbers(char const *const sch, int 
             char c = sch[i * ncols + j];
             if (digit_found)
             { /* we are scanning a part number */
-                if (isdigit(c))
+                if (isdigit(c) && (j != (ncols - 1)))
                 {
                     end_part_number_col = j;
                 }
                 else
                 { /* We have completed scanning a part number */
+                    if (j == (ncols - 1))
+                    {
+                        end_part_number_col = j;
+                    }
                     if (is_symbol_adjacent(sch, beg_part_number_col, end_part_number_col, i, nrows, ncols))
                     {
+                        /* Note part number value is 0 if the part number has already been seen */
                         cumsum += schematic_part_number_value(sch, beg_part_number_col, end_part_number_col, i, ncols);
                     }
                     digit_found = false;
@@ -217,6 +244,56 @@ static int schematic_part_number_value(char const *const sch, int const beg, int
     partstr[len] = '\0';
     /* To check the sum of these in the output use the following AWK command*/
     /* awk 'BEGIN { FS=OFS=" "; cumsum = 0; } //{ if (NF == 5) cumsum += $5} END {print cumsum}'*/
-//    printf("%3i %i %i %s %i\n", row, beg, end, partstr, atoi(partstr));
-    return atoi(partstr);
+    int part_number = atoi(partstr);
+    /* if (is_new_part_number(part_number)) */
+    /* { */
+    /*     return part_number; */
+    /* } */
+    /* else */
+    /* { */
+    /*     return 0; */
+    /* } */
+    FILE *f = fopen("./numbers.dat", "a");
+    /* awk 'BEGIN { cumsum = 0 } { cumsum += $1; } END { print cumsum}' numbers.dat */
+    fprintf(f, "%i\n", part_number);
+    fclose(f);
+    return part_number;
 }
+
+/* Diagnostic function to test each character whether it is a digit or punctuation symbol */
+static void schematic_check_chars(char const *const sch, int const nrows, int const ncols)
+{
+    for (int i = 0; i < nrows; i++)
+    {
+        for (int j = 0; j < ncols; j++)
+        {
+            char c = sch[i * ncols + j];
+            if (ispunct(c) || isdigit(c))
+            {
+                continue;
+            }
+            else
+            {
+                printf("Char %c does not fit any criteria!\n", c);
+            }
+        }
+    }
+}
+
+/* bool is_new_part_number(int part_number) */
+/* { */
+/*     static bool part_number_found[1000] = { 0 }; /\* intialize to not found for each number *\/ */
+/*     if (!part_number_found[part_number]) */
+/*     { */
+/*         FILE *f = fopen("./numbers.dat", "a"); */
+/*         /\* cat numbers.dat | uniq | sort | awk 'BEGIN { cumsum = 0 } { cumsum += $1; } END { print cumsum}'*\/ */
+/*         fprintf(f, "%i\n", part_number); */
+/*         fclose(f); */
+/*         part_number_found[part_number] = true; */
+/*         return true; */
+/*     } */
+/*     else */
+/*     { */
+/*         return false; */
+/*     } */
+/* } */
