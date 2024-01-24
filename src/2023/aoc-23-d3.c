@@ -5,7 +5,7 @@
   Build Instructions:
   PATH=../../build/:${PATH}
   clang -std=c99 -Wall -Wextra aoc-23-d3.c  -O3 -g -o ../../build/aoc-23-d3
-  clang -std=c99 -Wall -Wextra aoc-23-d3.c -g -o ../../build/aoc-23-d3
+  clang -std=c99 -pedantic -Wvla -Wall -Wextra aoc-23-d3.c -g -o ../../build/aoc-23-d3
 
   Program written for the Advent of Code day 3 2023
 
@@ -45,8 +45,7 @@ static bool is_symbol_adjacent(char const *const sch, int const beg_col, int con
                                int const ncols);
 static int schematic_part_number_value(char const *const sch, int const beg, int const end, int const row, int const ncols);
 static int schematic_scan_and_sum_valid_part_numbers(char const *const sch, int const nrows, int const ncols);
-static void schematic_check_chars(char const *const sch, int const nrows, int const ncols);
-static bool is_new_part_number(int part_number);
+static bool schematic_check_size(char const *const fname, int const nrows, int const ncols);
 
 int main(int argc, char *argv[])
 {
@@ -57,17 +56,18 @@ int main(int argc, char *argv[])
     }
     else
     {
-        strcpy(fname, FILENAME);
-    }
+        fprintf(stderr, "USAGE: %s FILENAME\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }    
     int const ncols = schematic_width(fname);
     int const nrows = schematic_length(fname);
     char *const schematic = malloc(sizeof(char) * nrows * ncols);
+    schematic_check_size(fname, nrows, ncols);
     schematic_fill(schematic, nrows, ncols, fname);
     for (int i = 0; i < nrows; i++)
     {
         schematic_print_row(schematic, i, ncols);
     }
-    schematic_check_chars(schematic, nrows, ncols);
     /* compute the sum of the values of the valid parts */
     int const cumsum = schematic_scan_and_sum_valid_part_numbers(schematic, nrows, ncols);
     printf("The value of the sum of the valid part numbers is: %i\n", cumsum);
@@ -96,7 +96,6 @@ static int schematic_length(char const *const fname)
             row_count++;            
         }
     }
-    
     fclose(f);
     return row_count;
 }
@@ -243,3 +242,11 @@ static int schematic_part_number_value(char const *const sch, int const beg, int
     return part_number;
 }
 
+static bool schematic_check_size(char const *const fname, int const nrows, int const ncols)
+{
+    FILE* f = fopen(fname, "r");
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fclose(f);
+    return size == ncols * nrows;
+}
