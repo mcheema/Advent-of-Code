@@ -5,7 +5,7 @@
   Build Instructions:
   PATH=../../build/:${PATH}
   clang -std=c99 -Wall -Wextra aoc-23-d3.c  -O3 -g -o ../../build/aoc-23-d3
-  clang -std=c99 -Wall -Wextra aoc-23-d3.c  -DTEST -g -o ../../build/aoc-23-d3
+  clang -std=c99 -Wall -Wextra aoc-23-d3.c -g -o ../../build/aoc-23-d3
 
   Program written for the Advent of Code day 3 2023
 
@@ -18,7 +18,8 @@
   example2: echo $((12 + 34 + 78 + 23 + 90 + 2 + 56 + 1))
   example2: echo $((12*4 + 34 + 78*2 + 23 + 90 + 2*2 + 56 + 1*2))
 
-
+  working alternate solution
+  https://github.com/hannahnowxyz/puzzles/blob/main/aoc2023/day3/schematic.c
  */
 
 #include <ctype.h>
@@ -26,12 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef TEST
-#define FILENAME "../../data/aoc-23-d3-ex.txt" /* Example from the problem set */
-#else
-#define FILENAME "../../data/aoc-23-d3.txt"
-#endif
 
 #define MAX_COLS 256  /* based on: head -n 1 ../data/aoc-2023-d3.txt | wc | awk '{ print $3 - 1}' */
 #define MAX_ROWS 256  /* Basec on:wc -l ../data/aoc-2023-d3.txt | awk  '{print $1}' */
@@ -151,8 +146,8 @@ static int schematic_scan_and_sum_valid_part_numbers(char const *const sch, int 
                     end_part_number_col = j;
                 }
                 else
-                { /* We have completed scanning a part number */
-                    if (j == (ncols - 1))
+                { /* We have completed scanning a part number or end of the line */
+                    if (j == (ncols - 1)) /* end of the line*/
                     {
                         end_part_number_col = j;
                     }
@@ -245,55 +240,6 @@ static int schematic_part_number_value(char const *const sch, int const beg, int
     /* To check the sum of these in the output use the following AWK command*/
     /* awk 'BEGIN { FS=OFS=" "; cumsum = 0; } //{ if (NF == 5) cumsum += $5} END {print cumsum}'*/
     int part_number = atoi(partstr);
-    /* if (is_new_part_number(part_number)) */
-    /* { */
-    /*     return part_number; */
-    /* } */
-    /* else */
-    /* { */
-    /*     return 0; */
-    /* } */
-    FILE *f = fopen("./numbers.dat", "a");
-    /* awk 'BEGIN { cumsum = 0 } { cumsum += $1; } END { print cumsum}' numbers.dat */
-    fprintf(f, "%i\n", part_number);
-    fclose(f);
     return part_number;
 }
 
-/* Diagnostic function to test each character whether it is a digit or punctuation symbol */
-static void schematic_check_chars(char const *const sch, int const nrows, int const ncols)
-{
-    for (int i = 0; i < nrows; i++)
-    {
-        for (int j = 0; j < ncols; j++)
-        {
-            char c = sch[i * ncols + j];
-            if (ispunct(c) || isdigit(c))
-            {
-                continue;
-            }
-            else
-            {
-                printf("Char %c does not fit any criteria!\n", c);
-            }
-        }
-    }
-}
-
-/* bool is_new_part_number(int part_number) */
-/* { */
-/*     static bool part_number_found[1000] = { 0 }; /\* intialize to not found for each number *\/ */
-/*     if (!part_number_found[part_number]) */
-/*     { */
-/*         FILE *f = fopen("./numbers.dat", "a"); */
-/*         /\* cat numbers.dat | uniq | sort | awk 'BEGIN { cumsum = 0 } { cumsum += $1; } END { print cumsum}'*\/ */
-/*         fprintf(f, "%i\n", part_number); */
-/*         fclose(f); */
-/*         part_number_found[part_number] = true; */
-/*         return true; */
-/*     } */
-/*     else */
-/*     { */
-/*         return false; */
-/*     } */
-/* } */
