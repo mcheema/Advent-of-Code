@@ -1,11 +1,11 @@
 /*  -*- mode: C -*- */
-/* This file conforms to C99 */
+/* This file conforms to C17 */
 
 /*
   Build Instructions:
   PATH=../../build/:${PATH}
-  clang -std=c99 -Wall -Wextra aoc-23-d3.c  -O3 -g -o ../../build/aoc-23-d3
-  clang -std=c99 -pedantic -Wvla -Wall -Wextra -fsanitize=address aoc-23-d3.c -g -o ../../build/aoc-23-d3
+  clang -std=c17 -Wall -Wextra aoc-23-d3.c  -g -o ../../build/aoc-23-d3
+  clang -std=c17 -pedantic -Wall -Wextra -g -fsanitize=address aoc-23-d3.c  -o ../../build/aoc-23-d3
 
   Program written for the Advent of Code day 3 2023
   First example comes from the problem itself
@@ -16,8 +16,12 @@
 
   example2 part I: echo $((12*4 + 34 + 78*2 + 23 + 90 + 2*2 + 56 + 1*2))
   example2 part2: echo $((78 *78 + 12 * 56)) 6756
+  example 3:
+  example 4: 1: 799; part 2: 155044
+  example 5: 1: 799; part 2: 155044
  */
 
+#include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -34,29 +38,52 @@
 /*
   primary data structure with a single array with all the non newline characters
   in row major order
+
+         0        ncol -1
+         ^        ^
+     0 ->|--------|
+         |--------|
+         |--------|
+         |--------|
+ nrow-1->|--------|
+            SCHEMATIC
 */
 struct schematic {
-    char *grid;
+    char *sch;
     int nrows;
     int ncols;
 };
 
+static char schematic_get(struct schematic const * const s, int const row,  int const col)
+{
+    #ifdef TEST
+    assert(row < s->nrows);
+    assert(col < s->ncols);
+    #endif
+    return s->sch[row * s->ncols + col];
+}
+
+static void schematic_put(struct schematic * const s, int const row, int const col, char const c)
+{
+    s->sch[row * s->ncols + col] = c;    
+}
 /*
   A window is a subset of the full schematic
   It incumbant on the programmer to make sure the window parameters
   properly overlap the schematic
  */
 struct window {
+    struct schematic const * const s; /* Associated Schematic */
     /* Location of window within the schematic */
     int from_row;
     int to_row;
     int from_col;
     int to_col;
-    /* Absolute properties of the window  */
-    int rows;   /* no of rows in window */
-    int cols;   /* no of cols in window */
     bool *used; /* array of flags size of the window representing each cell in row major order */
 };
+
+#define window_rows(w) ((w).to_row - (w).from_row + 1) /* no of rows in window */
+#define window_cols(w) ((w).to_col - (w).from_col + 1) /* no of cols in window */
 
 /* Part numbers go left to right and have at most MAX_DIGITS - 1 */
 struct part {
@@ -69,10 +96,10 @@ struct part {
 
 static struct schematic schematic_create(char const *const fname);
 static void schematic_destroy(struct schematic s);
-static int schematic_scan_and_sum_valid_parts(struct schematic *s);
-static int schematic_scan_and_sum_gear_ratios(struct schematic const *const s);
+static int schematic_scan_and_sum_valid_parts(struct schematic const * const s);
+static int schematic_scan_and_sum_gear_ratios(struct schematic const * const s);
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[static 1])
 {
     char fname[MAX_FNAME_LEN];
     if (argc == 2)
@@ -83,7 +110,7 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "USAGE: %s FILENAME\n", argv[1]);
         exit(EXIT_FAILURE);
-    }    
+    }
 
     struct schematic s = schematic_create(fname);
 
@@ -92,7 +119,7 @@ int main(int argc, char *argv[])
     printf("The value of the sum of the valid part numbers is: %i\n", cumsum);
 
     int const gearsum = schematic_scan_and_sum_gear_ratios(&s);
-    printf("The value of the sum of the valid part numbers is: %i\n", gearsum);
+    printf("The value of the sum of the gear ratios is: %i\n", gearsum);
 
     schematic_destroy(s);
     exit(EXIT_SUCCESS);
@@ -111,40 +138,41 @@ static int schematic_width(char const *const fname)
 /* Helper for schematic create */
 static int schematic_length(char const *const fname)
 {
-    FILE *f = fopen(fname, "r");    
+    FILE *f = fopen(fname, "r");
     int row_count = 0;
     char c;
     while ((c = fgetc(f)) != EOF)
     {
         if (c == '\n')
         {
-            row_count++;            
+            row_count++;
         }
     }
     fclose(f);
     return row_count;
 }
 
-/* Helper for schematic create */
-static int schematic_fill(struct schematic *const s, char const *const fname)
+/*
+  Helper for schematic create: it assumes the caller has correctly allocated space for
+  the schematic and that no of cols and no of rows have been computed and set int the
+  schematic struct.
+ */
+static int schematic_fill(struct schematic * const s, char const * const fname)
 {
-    char *const sch = s->grid;
-    int const ncols = s->ncols;
-
-    FILE *f = fopen(fname, "r");    
+    FILE *f = fopen(fname, "r");
     int cur_row = 0;
     int cur_col = 0;
     char c;
     while ((c = fgetc(f)) != EOF)
     {
-        if (c == '\n') 
+        if (c == '\n')
         {
             cur_row++;
             cur_col = 0;
         }
         else
         {
-            sch[cur_row * ncols + cur_col] = c;
+            schematic_put(s, cur_row, cur_col, c);
             cur_col++;
         }
     }
@@ -154,42 +182,38 @@ static int schematic_fill(struct schematic *const s, char const *const fname)
 
 #ifdef TEST
 /* Helper for schematic create */
-static void schematic_print(struct schematic const *const s)
+static void schematic_print(struct schematic const * const s)
 {
-    char const *const sch = s->grid;
-    int const nrows = s->nrows;
-    int const ncols = s->ncols;
-
-    for (int i = 0; i < nrows; i++)
+    for (int i = 0; i < s.nrows; i++)
     {
         for (int j = 0; j < ncols; j++)
         {
-            printf("%c", sch[i * ncols +i]);            
+            printf("%c", schematic_get(s->sch, i, j));
         }
         printf("\n");
-    }    
+    }
 }
 #endif
 
 /* Helper for schematic create */
-static struct schematic schematic_create(char const *const fname)
+static struct schematic schematic_create(char const * const fname)
 {
-    struct schematic sch;
-    sch.nrows = schematic_length(fname);
-    sch.ncols = schematic_width(fname);
-    sch.grid = malloc(sizeof(char) * sch.nrows * sch.ncols);
-    schematic_fill(&sch, fname);
-#ifdef TEST    
+    struct schematic s;
+    s.nrows = schematic_length(fname);
+    s.ncols = schematic_width(fname);
+    s.sch = malloc(sizeof(char) * s.nrows * s.ncols);
+    schematic_fill(&s, fname);
+#ifdef TEST
     schematic_print(&sch);
 #endif
-    return sch;
+    return s;
 }
 
 static void schematic_destroy(struct schematic s)
 {
-    if (s.grid)
+    if (s.sch)
     {
-        free(s.grid);
+        free(s.sch);
     }
 }
 
@@ -199,22 +223,29 @@ static bool is_valid_symbol(char const c)
     return (ispunct(c) && (c != '.')) ? true : false;
 }
 
-/* Create a window around a row segment (symbol | part) within the schematic  */
+/* Create a window around a row segment (symbol | part) within the schematic
+   note: end_col IS the index of the last char of the segment not one PAST the last char
+   as is often conventional
+ */
 static struct window window_create_around_row_seg(struct schematic const *const s, int const row, int const beg_col, int const end_col)
 {
-    int const nrows = s->nrows;
-    int const ncols = s->ncols;
-    struct window w;
-    /* Location of window within associated schematic */
-    w.from_row = MAX(row - 1, 0);
-    w.to_row = MIN(row + 1, nrows - 1);
-    w.from_col = MAX(beg_col - 1, 0);
-    w.to_col = MIN(end_col + 1, ncols - 1);
+    struct window w = (struct window) {
+        .s = s, /* Window must be associated with a schematic */
+        /* Location of window within associated schematic */
+        .from_row = MAX(row - 1, 0),
+        .to_row = MIN(row + 1, s->nrows - 1),
+        .from_col = MAX(beg_col - 1, 0),
+        .to_col = MIN(end_col + 1, s->ncols - 1),
+        /* Absolute references to the window */
+        .used = NULL
+    };
 
-    /* Absolute references to the window */
-    w.rows = w.to_row - w.from_row + 1; /* no of rows in window */
-    w.cols = w.to_col - w.from_col + 1; /* no of cols in window */
-    w.used = calloc(w.rows * w.cols, sizeof(bool)); /* set to false */
+    w.used = calloc(window_cols(w) * window_rows(w), sizeof(bool)); /* set to false */    
+    if (!w.used)
+    {
+        fprintf(stderr, "[ERROR:] Memory Error, window not created\n");
+        exit(2);
+    }
 
     /* mark location of segment within window in used array */
     int const seg_size = end_col - beg_col + 1;
@@ -222,27 +253,24 @@ static struct window window_create_around_row_seg(struct schematic const *const 
     int const seg_beg_col = (beg_col == 0) ? 0 : 1;
     for (int i = 0; i < seg_size; i++)
     {
-        w.used[seg_row * w.cols + seg_beg_col + i] = true; 
+        w.used[seg_row * window_cols(w) + seg_beg_col + i] = true;
     }
-
     return w;
 }
 
+#ifdef TEST
 static void window_print(struct window const w, struct schematic const *const s)
 {
-    char const *const sch = s->grid;
-    int const ncols = s->ncols;
-    
     for( int i = w.from_row; i <= w.to_row; i++)
     {
         for (int j = w.from_col; j <= w.to_col; j++)
         {
-            printf("%c", sch[i * ncols + j]);
+            printf("%c", schematic_get(s, i, j));
         }
         printf("\n");
     }
 }
-
+#endif
 
 static void window_destroy(struct window w)
 {
@@ -252,9 +280,6 @@ static void window_destroy(struct window w)
 /* Specifiy the location within the schema of the number by giving it's row number and beg and end column number*/
 static bool is_symbol_adjacent(struct schematic const *const s, int const beg_col, int const end_col, int const row)
 {
-    char const *const sch = s->grid;
-    int const ncols = s->ncols;
-
     struct window w = window_create_around_row_seg(s, row, beg_col, end_col);
 
     /* Look for symbol */
@@ -262,7 +287,7 @@ static bool is_symbol_adjacent(struct schematic const *const s, int const beg_co
     {
         for (int j = w.from_col; j <= w.to_col; j++)
         {
-            char c = sch[i * ncols + j];
+            char c = schematic_get(s, i,j);
             if (is_valid_symbol(c))
             {
                 return true;
@@ -276,14 +301,11 @@ static bool is_symbol_adjacent(struct schematic const *const s, int const beg_co
 /* Helper function for schematic_scan_and_sum_valid_parts */
 static int schematic_part_value(struct schematic const *const s, int const beg, int const end, int const row)
 {
-    char const *const sch = s->grid;
-    int const ncols = s->ncols;
-
     char partstr[MAX_DIGITS] = "";
     int len = 0;
     for (int i = beg; i <= end; i++)
     {
-        char c = sch[row * ncols + i];
+        char c = schematic_get(s, row, i);
         partstr[len] = c;
         len++;
     }
@@ -294,31 +316,26 @@ static int schematic_part_value(struct schematic const *const s, int const beg, 
     return part;
 }
 
-static int schematic_scan_and_sum_valid_parts(struct schematic *s)
+static int schematic_scan_and_sum_valid_parts(struct schematic const * const s)
 {
-    char const *const sch = s->grid;
-    int const nrows = s->nrows;
-    int const ncols = s->ncols;
-
-
     bool digit_found = false; /* are we currently scanning a part nummber? */
     int beg_part_col = 0;
     int end_part_col = 0;
     int cumsum = 0;
-    for (int i = 0; i < nrows; i++)
+    for (int i = 0; i < s->nrows; i++)
     {
-        for (int j = 0; j < ncols; j++)
+        for (int j = 0; j < s->ncols; j++)
         {
-            char c = sch[i * ncols + j];
+            char c = schematic_get(s, i, j);
             if (digit_found)
             { /* we are scanning a part number */
-                if (isdigit(c) && (j != (ncols - 1)))
+                if (isdigit(c) && (j != (s->ncols - 1)))
                 {
                     end_part_col = j;
                 }
                 else
                 { /* We have completed scanning a part number or end of the line */
-                    if (j == (ncols - 1)) /* end of the line*/
+                    if (j == (s->ncols - 1)) /* end of the line*/
                     {
                         end_part_col = j;
                     }
@@ -354,7 +371,7 @@ static int schematic_scan_and_sum_valid_parts(struct schematic *s)
     }                            /* Scan each row for part numbers */
 
     return cumsum;
-} /* End of scan and sum */ 
+} /* End of scan and sum */
 
 /* Helper function for schematic_calc_gear_ratio */
 static void update_used(struct window w, struct part const p)
@@ -367,63 +384,49 @@ static void update_used(struct window w, struct part const p)
     int const r = p.row - w.from_row;
     for (int i = 0; i < size; i++)
     {
-        int idx = r * w.cols + i + offset;
+        int idx = r * window_cols(w) + i + offset;
         w.used[idx] = true;
-    }    
+    }
 }
 
 /* Helper function for schematic_calc_gear_ratio */
-/* Given there is a digit at sch[row * ncols + col] return the corresponding part number */
+/* Given there is a digit at schematic_get(s, row, col) return the corresponding part number */
 static struct part schematic_find_part(struct schematic const *const s, int const row, int const col)
 {
-    char const *const sch = s->grid;
     int const ncols = s->ncols;
-
-    int idx = row * ncols + col;
     struct part p;
-
     p.row = row;
-
     p.beg_col = col;
-    while (isdigit(sch[idx]) && p.beg_col > 0)
-    {       
+    while (isdigit(schematic_get(s, row, col)) && p.beg_col > 0)
+    {
         p.beg_col--;
-        idx = row * ncols + p.beg_col;        
     }
-    /* edge case when the part number begins at col 0 */
-    if (isdigit(sch[idx])) p.beg_col++;
-
-    idx = row * ncols + col;
+    if (!isdigit(schematic_get(s, row, p.beg_col))) p.beg_col++;
     p.end_col = col;
-    while (isdigit(sch[idx]) && p.end_col < ncols)
-    {       
+    while (isdigit(schematic_get(s, row, p.end_col)) && p.end_col < ncols)
+    {
         p.end_col++;
-        idx = row * ncols + p.end_col;        
     }
-    if (isdigit(sch[idx])) p.end_col--;
-
+    if (!isdigit(schematic_get(s, row, p.end_col))) p.end_col--;
     int len = 0;
     for (int i = p.beg_col; i <= p.end_col; i++)
     {
-        char c = sch[row * ncols + i];
+        char c = schematic_get(s, row, i);
         p.partstr[len] = c;
         len++;
     }
     p.partstr[len] = '\0';
-    
     p.value =atoi(p.partstr);
-
     return p;
 }
 
 /* Helper function for schematic_scan_and_sum_gear_ratios*/
 static int schematic_calc_gear_ratio(struct schematic const *const s, int const row, int const col)
 {
-    char const *const sch = s->grid;
-    int const ncols = s->ncols;
-
     struct window w = window_create_around_row_seg(s, row, col, col);
-//    window_print(w, s);
+    #ifdef TEST    
+    window_print(w, s);
+    #endif
     struct part part[2]; /* 2 and only 2 parts can be adjacent to the symbol for a valid gear ratio */
     int n_part = 0;
 
@@ -432,13 +435,12 @@ static int schematic_calc_gear_ratio(struct schematic const *const s, int const 
     {
         for (int j = w.from_col; j <= w.to_col; j++)
         {
-            int idx = i * ncols + j;
-            int used_idx = (i - w.from_row) * w.cols + (j - w.from_col) ;
+            int used_idx = (i - w.from_row) * window_cols(w) + (j - w.from_col) ;
             if (n_part > 1)
             {
                 break;
             }
-            if (isdigit(sch[idx]) || !w.used[used_idx])
+            else if (isdigit(schematic_get(s, i, j)) && !w.used[used_idx])
             {
                 part[n_part] = schematic_find_part(s, i, j);
                 update_used(w, part[n_part]);
@@ -450,27 +452,22 @@ static int schematic_calc_gear_ratio(struct schematic const *const s, int const 
             }
         }
     }
-    
     window_destroy(w);
-    if (n_part < 1 || n_part > 1)
+    if (n_part != 1)
     {
         return 0;
     }
    return part[0].value * part[1].value;
 }
 
-static int schematic_scan_and_sum_gear_ratios(struct schematic const *const s)
+static int schematic_scan_and_sum_gear_ratios(struct schematic const * const s)
 {
-    char const *const sch = s->grid;
-    int const nrows = s->nrows;
-    int const ncols = s->ncols;
-
     int cumsum = 0;
-    for (int i = 0; i < nrows; i++)
+    for (int i = 0; i < s->nrows; i++)
     {
-        for (int j = 0; j < ncols; j++)
+        for (int j = 0; j < s->ncols; j++)
         {
-            if (is_valid_symbol(sch[i * ncols + j]))
+            if ('*' == schematic_get(s, i, j))
             {
                 cumsum += schematic_calc_gear_ratio(s, i, j);
             }
